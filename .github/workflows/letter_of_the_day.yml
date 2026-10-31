@@ -1,0 +1,21 @@
+name: Letter of the Day
+
+on:
+  schedule:
+    # 14:00 UTC = 7:00am PDT. During PST (Nov-Mar) this fires at 6:00am
+    # Pacific — GitHub cron is UTC-only, so the DST shift is accepted.
+    - cron: "0 14 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: python -m channels.letter_of_the_day --post
+        env:
+          VESTABOARD_TOKEN: ${{ secrets.VESTABOARD_TOKEN }}
