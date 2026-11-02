@@ -52,15 +52,12 @@ def letter_for(day: datetime.date) -> str:
 
 def build_grid(day: datetime.date) -> list[list[int]]:
     letter = letter_for(day)
-    words = WORDS[letter][:4]
+    words = sorted(WORDS[letter], key=lambda w: (len(w), w))
     grid = blank_grid()
-    set_row(grid, 0, f"{{yellow}} {letter} {{yellow}}", align="center")
-    for i, word in enumerate(words[:3]):
-        set_row(grid, 2 + i, word, align="center")
-    if len(words) > 3:
-        set_row(grid, 5, f"{{green}} {words[3]} {{green}}", align="center")
-    else:
-        set_row(grid, 5, "{green}", align="center")
+    set_row(grid, 1, "THE LETTER OF THE", align="center")
+    set_row(grid, 2, f"DAY IS {{blue}}{letter}{{blue}}", align="center")
+    word_row = "{yellow}" + "{yellow}".join(words) + "{yellow}"
+    set_row(grid, 4, word_row, align="center")
     return grid
 
 
