@@ -69,6 +69,20 @@ def set_row(grid: list[list[int]], row_index: int, text: str, align: str = "left
     return grid
 
 
+def wrap(text: str, width: int = COLS, max_lines: int = 3) -> list[str]:
+    """Word-wrap a string into at most ``max_lines`` lines of ``width``."""
+    lines: list[str] = []
+    cur = ""
+    for word in text.split():
+        if len(cur) + bool(cur) + len(word) <= width:
+            cur = f"{cur} {word}".strip()
+        else:
+            lines.append(cur)
+            cur = word
+    lines.append(cur)
+    return lines[:max_lines]
+
+
 def validate(grid: list[list[int]]) -> None:
     """Raise if a grid is not 6x22 ints within the known character set."""
     if len(grid) != ROWS:

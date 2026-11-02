@@ -1,0 +1,21 @@
+name: Dinner Menu
+
+on:
+  schedule:
+    # 00:30 UTC = 4:30pm PST (5:30pm PDT in summer — DST shift accepted).
+    # Before the 01:00 moon phase post. Skips days with no menu entry.
+    - cron: "30 0 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: python -m channels.dinner_menu --post
+        env:
+          VESTABOARD_TOKEN: ${{ secrets.VESTABOARD_TOKEN }}

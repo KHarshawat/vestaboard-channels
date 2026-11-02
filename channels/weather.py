@@ -30,7 +30,7 @@ from zoneinfo import ZoneInfo
 
 import requests
 
-from vestaboard import blank_grid, post_characters, print_grid, set_row
+from vestaboard import blank_grid, post_characters, print_grid, set_row, wrap
 
 LAT, LON = 37.7676, -122.4308  # Duboce Triangle
 GRIDPOINT = "https://api.weather.gov/gridpoints/MTR/84,105"
@@ -128,19 +128,6 @@ def fmt_wind(speed: str, direction: str) -> str:
     n = nums[-1] if nums else "?"
     wind = f"{direction}{n}MPH"
     return wind if len(wind) <= 8 else f"{n}MPH"
-
-
-def wrap(text: str, width: int = 22, max_lines: int = 2) -> list[str]:
-    lines: list[str] = []
-    cur = ""
-    for word in text.split():
-        if len(cur) + bool(cur) + len(word) <= width:
-            cur = f"{cur} {word}".strip()
-        else:
-            lines.append(cur)
-            cur = word
-    lines.append(cur)
-    return lines[:max_lines]
 
 
 _ABBREV = [
@@ -372,7 +359,7 @@ def build_alerts_grid(alerts: dict) -> list[list[int]] | None:
     top = props[0]
     g = blank_grid()
     set_row(g, 0, "{red}{red} NWS ALERT {red}{red}", align="center")
-    for i, line in enumerate(wrap(top["event"].upper())):
+    for i, line in enumerate(wrap(top["event"].upper(), max_lines=2)):
         set_row(g, 2 + i, line, align="center")
     ends_s = top.get("ends") or top.get("expires")
     if ends_s:

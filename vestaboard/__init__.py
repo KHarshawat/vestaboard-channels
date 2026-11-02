@@ -3,7 +3,7 @@
 from .characters import BLANK, COLOR_CODES, COLS, ROWS
 from .client import get_current, post_characters, post_text
 from .preview import print_grid
-from .render import blank_grid, color, encode, set_row, text_to_row, validate
+from .render import blank_grid, color, encode, set_row, text_to_row, validate, wrap
 
 __all__ = [
     "BLANK",
@@ -20,4 +20,5 @@ __all__ = [
     "set_row",
     "text_to_row",
     "validate",
+    "wrap",
 ]
