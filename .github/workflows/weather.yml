@@ -1,0 +1,23 @@
+name: Weather
+
+on:
+  schedule:
+    # 14:30 UTC = 7:30am PDT (6:30am PST in winter — DST shift accepted).
+    # Staggered after letter_of_the_day (14:00) so posts don't collide.
+    - cron: "30 14 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      # Posts today's weather, then the 5-day forecast ~3 min later,
+      # then an AQI alert page only if US AQI > 100.
+      - run: python -m channels.weather --post
+        env:
+          VESTABOARD_TOKEN: ${{ secrets.VESTABOARD_TOKEN }}
