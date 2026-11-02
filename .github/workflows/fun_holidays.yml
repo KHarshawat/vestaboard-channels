@@ -2,8 +2,11 @@ name: Fun Holidays
 
 on:
   schedule:
-    # 20:00 UTC = 12:00pm PST (1:00pm PDT in summer — DST shift accepted).
-    # Midday slot between muni (16:00) and dinner_menu (00:30).
+    # Morning: 16:15 UTC = 8:15am PST (9:15am PDT in summer — DST shift
+    # accepted). Right after muni (16:00), whose arrival times go stale.
+    - cron: "15 16 * * *"
+    # Midday: 20:00 UTC = 12:00pm PST (1:00pm PDT). Between the morning
+    # run and dinner_menu (00:30).
     - cron: "0 20 * * *"
   workflow_dispatch: {}
 
