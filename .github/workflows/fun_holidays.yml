@@ -1,0 +1,21 @@
+name: Fun Holidays
+
+on:
+  schedule:
+    # 20:00 UTC = 12:00pm PST (1:00pm PDT in summer — DST shift accepted).
+    # Midday slot between muni (16:00) and dinner_menu (00:30).
+    - cron: "0 20 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: python -m channels.fun_holidays --post
+        env:
+          VESTABOARD_TOKEN: ${{ secrets.VESTABOARD_TOKEN }}

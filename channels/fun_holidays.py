@@ -1,0 +1,515 @@
+"""Fun Holidays channel - funny, random & weird holidays, every day.
+
+The calendar lives in this file, keyed by "MM-DD". When a date has
+several holidays, the pick rotates by year so repeat dates stay fresh.
+Days with no entry are skipped. The header color rotates daily through
+the tile palette, with a two-color confetti row at the bottom.
+
+Usage:
+    python -m channels.fun_holidays                     # preview (default)
+    python -m channels.fun_holidays --date 2026-09-19   # preview another date
+    python -m channels.fun_holidays --post              # post to the board
+"""
+
+import argparse
+import datetime
+import sys
+import unicodedata
+from zoneinfo import ZoneInfo
+
+from vestaboard import blank_grid, post_characters, print_grid, set_row, wrap
+from vestaboard.characters import CHAR_TO_CODE
+
+TZ = ZoneInfo("America/Los_Angeles")
+PALETTE = ["red", "orange", "yellow", "green", "blue", "violet"]
+
+HOLIDAYS: dict[str, list[str]] = {
+    "01-01": ["Polar Bear Plunge Day"],
+    "01-02": ["Buffet Day", "Run It up the Flagpole and See If Anyone Salutes It Day", "Science Fiction Day"],
+    "01-03": ["Festival of Sleep Day", "Fruitcake Toss Day"],
+    "01-04": ["Trivia Day"],
+    "01-05": ["Bird Day", "National Whipped Cream Day"],
+    "01-06": ["Bean Day"],
+    "01-07": ["Old Rock Day"],
+    "01-08": ["Earth's Rotation Day"],
+    "01-09": ["Static Electricity Day", "Word Nerd Day"],
+    "01-10": ["Cut Your Energy Costs Day"],
+    "01-11": ["Learn Your Name in Morse Code Day"],
+    "01-12": ["Clean Off Your Desk Day", "Marzipan Day"],
+    "01-13": ["Make Your Dreams Come True Day"],
+    "01-14": ["Organize Your Home Day"],
+    "01-15": ["Strawberry Ice Cream Day"],
+    "01-16": ["Nothing Day"],
+    "01-17": ["Benjamin Franklin Day", "Ditch New Year's Resolution Day", "Kid Inventors' Day", "Soup Swap Day"],
+    "01-18": ["Thesaurus Day"],
+    "01-19": ["Popcorn Day", "Tin Can Day"],
+    "01-20": ["Penguin Awareness Day"],
+    "01-21": ["Squirrel Appreciation Day"],
+    "01-22": ["Answer Your Cat's Questions Day", "Hot Sauce Day", "National Polka Dot Day"],
+    "01-23": ["Handwriting Day", "National Pie Day"],
+    "01-24": ["Compliment Day", "Macintosh Computer Day", "National Peanut Butter Day"],
+    "01-25": ["Opposite Day"],
+    "01-26": ["Spouse's Day"],
+    "01-27": ["Chocolate Cake Day", "e-Day"],
+    "01-28": ["Data Privacy Day", "Fun at Work Day"],
+    "01-29": ["Puzzle Day"],
+    "01-30": ["Croissant Day"],
+    "01-31": ["Backwards Day", "National Hot Chocolate Day"],
+    "02-01": ["National Dark Chocolate Day"],
+    "02-02": ["Day of the Crêpe", "Play Your Ukulele Day", "Groundhog Day"],
+    "02-03": ["Carrot Cake Day"],
+    "02-04": ["Create a Vacuum Day", "Stuffed Mushroom Day", "Thank Your Mailman Day"],
+    "02-05": ["Chocolate Fondue Day", "National Weatherperson's Day"],
+    "02-06": ["Lame Duck Day", "Work Naked Day"],
+    "02-07": ["Eat Ice Cream for Breakfast Day", "Send a Card to a Friend Day", "e-Day"],
+    "02-08": ["Laugh and Get Rich Day"],
+    "02-09": ["Bagel and Lox Day", "Clean Out Your Computer Day", "Toothache Day", "National Pizza Day", "National Bagel Day"],
+    "02-10": ["Umbrella Day"],
+    "02-11": ["Don't Cry Over Spilled Milk Day", "Make a Friend Day"],
+    "02-12": ["Darwin Day"],
+    "02-13": ["World Radio Day", "Galentine's Day"],
+    "02-14": ["Ferris Wheel Day", "Library Lovers Day"],
+    "02-15": ["Gumdrop Day", "National \"I Want Butterscotch\" Day"],
+    "02-16": ["Do a Grouch a Favor Day"],
+    "02-17": ["Random Act of Kindness Day"],
+    "02-18": ["Battery Day"],
+    "02-19": ["Chocolate Mint Day"],
+    "02-20": ["National Love Your Pet Day"],
+    "02-22": ["Be Humble Day", "Single Tasking Day", "National Margarita Day"],
+    "02-23": ["International Dog Biscuit Appreciation Day", "National Banana Bread Day"],
+    "02-24": ["Tortilla Chip Day"],
+    "02-26": ["Pistachio Day", "Tell a Fairy Tale Day"],
+    "02-27": ["International Polar Bear Day", "No Brainer Day"],
+    "02-28": ["Public Sleeping Day", "World Sword Swallowers Day"],
+    "03-01": ["Plan a Solo Vacation Day", "World Compliment Day", "National Peanut Butter Lover's Day"],
+    "03-02": ["Old Stuff Day", "Read Across America Day (Dr. Seuss Day)", "National Bananacreme Pie Day"],
+    "03-03": ["I Want You to be Happy Day"],
+    "03-04": ["March Forth and Do Something Day", "National Sons Day"],
+    "03-05": ["Cinco de Marcho", "Learn What Your Name Means Day"],
+    "03-06": ["Dentist's Day"],
+    "03-07": ["Alexander Graham Bell Day", "National Crown Roast of Pork Day"],
+    "03-08": ["Proofreading Day", "International Women's Collaboration Brew Day", "National Peanut Cluster Day", "National Crabmeat Day"],
+    "03-09": ["Napping Day", "National Barbie Day", "National Blueberry Popover Day"],
+    "03-10": ["Mario Day"],
+    "03-11": ["Oatmeal Nut Waffle Day"],
+    "03-12": ["Alfred Hitchcock Day", "National Baked Scallops Day"],
+    "03-13": ["Jewel Day", "National Good Samaritan Day"],
+    "03-14": ["Pi Day", "National Potato Chip Day"],
+    "03-15": ["Everything You Think is Wrong Day"],
+    "03-16": ["Every Thing You Do is Right Day"],
+    "03-17": ["Submarine Day"],
+    "03-18": ["Awkward Moments Day"],
+    "03-19": ["Absolutely Incredible Kid Day", "Let's Laugh Day", "National Backyard Day"],
+    "03-20": ["Proposal Day", "World Storytelling Day"],
+    "03-21": ["Common Courtesy Day"],
+    "03-22": ["International Goof Off Day", "National Corndog Day"],
+    "03-23": ["Near Miss Day", "Puppy Day", "National Chips and Dip Day"],
+    "03-24": ["Chocolate Covered Raisins Day"],
+    "03-25": ["Tolkien Reading Day", "Waffle Day"],
+    "03-26": ["Make Up Your Own Holiday Day"],
+    "03-27": ["Spanish Paella Day", "World Theatre Day", "International Whiskey Day"],
+    "03-28": ["Something on a Stick Day", "International Saucisson's Day"],
+    "03-29": ["Smoke and Mirrors Day"],
+    "03-30": ["Take a Walk in the Park Day", "World Idli Day"],
+    "03-31": ["Bunsen Burner Day", "National Clams on the Half Shell Day"],
+    "04-01": ["Fun at Work Day", "April Fool's Day"],
+    "04-02": ["National Peanut Butter and Jelly Day"],
+    "04-03": ["Walk to Work Day", "World Party Day"],
+    "04-04": ["Tell a Lie Day"],
+    "04-05": ["First Contact Day", "Read a Road Map Day", "National Walking Day", "National Caramel Day"],
+    "04-06": ["Sorry Charlie Day"],
+    "04-07": ["National Beer Day"],
+    "04-10": ["Siblings Day"],
+    "04-11": ["Barbershop Quartet Day", "Submarine Day", "National Pet Day"],
+    "04-12": ["Grilled Cheese Day", "Yuri's Night", "National Licorice Day"],
+    "04-13": ["Scrabble Day"],
+    "04-14": ["Be Kind to Lawyers Day", "International Moment of Laughter Day", "Look up the Sky Day", "Reach as High as You Can Day", "National Gardening Day"],
+    "04-16": ["Eggs Benedict Day", "Wear Pajamas to Work Day"],
+    "04-17": ["Haiku Poetry Day", "Malbec World Day", "National Cheeseball Day"],
+    "04-18": ["Columnist Day"],
+    "04-19": ["National Rice Ball Day"],
+    "04-20": ["Look Alike Day"],
+    "04-22": ["Jelly Bean Day"],
+    "04-23": ["Impossible Astronaut Day", "Lover's Day", "Take Our Daughters and Sons to Work Day", "Take a Chance Day", "National Picnic Day"],
+    "04-24": ["National Pigs in a Blanket Day"],
+    "04-25": ["DNA Day", "National Zucchini Bread Day"],
+    "04-26": ["Pretzel Day", "Richter Scale Day", "World Pinhole Photography Day"],
+    "04-27": ["National Prime Rib Day"],
+    "04-29": ["Zipper Day", "National Shrimp Scampi Day"],
+    "04-30": ["Honesty Day"],
+    "05-01": ["Batman Day", "No Pants Day", "Space Day"],
+    "05-02": ["Free Comic Book Day", "Herb Day"],
+    "05-04": ["Star Wars Day", "Bird Day", "National Candied Orange Peel Day"],
+    "05-05": ["Cinco de Mayo", "National Hoagie Day"],
+    "05-06": ["Beverage Day", "National School Nurse Day"],
+    "05-09": ["Europe Day", "Lost Sock Memorial Day"],
+    "05-10": ["Clean Up Your Room Day"],
+    "05-11": ["Eat What You Want Day", "Twilight Zone Day"],
+    "05-12": ["Limerick Day"],
+    "05-13": ["Frog Jumping Day", "International Hummus Day"],
+    "05-14": ["Dance Like a Chicken Day"],
+    "05-15": ["Chocolate Chip Day", "Pizza Party Day"],
+    "05-16": ["National Barbecue Day"],
+    "05-17": ["Pack Rat Day", "National Walnut Day"],
+    "05-18": ["No Dirty Dishes Day"],
+    "05-19": ["May Ray Day"],
+    "05-20": ["Be a Millionaire Day"],
+    "05-21": ["Talk Like Yoda Day", "International Tea Day"],
+    "05-22": ["Buy a Musical Instrument Day"],
+    "05-23": ["National Taffy Day"],
+    "05-24": ["Scavenger Hunt Day"],
+    "05-25": ["Sing Out Day", "Towel Day", "National Wine Day"],
+    "05-26": ["World Lindy Hop Day"],
+    "05-27": ["Sun Screen Day", "National Italian Beef Day"],
+    "05-28": ["Hamburger Day", "National Brisket Day"],
+    "05-29": ["Put a Pillow on Your Fridge Day"],
+    "05-30": ["My Bucket's Got a Hole Day"],
+    "05-31": ["Macaroon Day"],
+    "06-01": ["Say Something Nice Day", "National Olive Day", "World Milk Day"],
+    "06-02": ["Leave the Office Early Day", "National Rotisserie Chicken Day", "National Rocky Road Day"],
+    "06-03": ["Repeat Day", "World Bicycle Day", "National Chocolate Macaroon Day", "National Egg Day"],
+    "06-04": ["Hug Your Cat Day", "National Cognac Day"],
+    "06-05": ["National Doughnut Day", "National Gingerbread Day", "National Moonshine Day"],
+    "06-06": ["Drive-In Movie Day", "National Applesauce Cake Day"],
+    "06-07": ["VCR Day"],
+    "06-08": ["Best Friends Day"],
+    "06-09": ["Donald Duck Day", "International Lemon Drizzle Cake Day"],
+    "06-10": ["Iced Tea Day"],
+    "06-11": ["Corn on the Cob Day"],
+    "06-12": ["Red Rose Day", "National Peanut Butter Cookie Day"],
+    "06-13": ["Sewing Machine Day"],
+    "06-14": ["Bourbon Day"],
+    "06-15": ["Nature Photography Day", "National Lobster Day"],
+    "06-16": ["Bloomsday", "National Fudge Day"],
+    "06-17": ["Eat Your Vegetables Day"],
+    "06-18": ["International Panic Day", "International Picnic Day", "International Sushi Day"],
+    "06-19": ["Sauntering Day"],
+    "06-20": ["World Juggling Day", "National Vanilla Milkshake Day", "National Ice Cream Soda Day", "National Kouign Amann Day"],
+    "06-21": ["Daylight Appreciation Day", "International Day of Yoga", "National Seashell Day", "National Wagyu Day"],
+    "06-22": ["Onion Ring Day"],
+    "06-23": ["Typewriter Day"],
+    "06-24": ["Swim a Lap Day"],
+    "06-25": ["Please Take my Children to Work Day", "National Catfish Day"],
+    "06-26": ["Chocolate Pudding Day", "Take Your Dog to Work Day"],
+    "06-27": ["Helen Keller Day", "National Sunglasses Day"],
+    "06-28": ["Tau Day", "National Ceviche Day", "National Tapioca Day"],
+    "06-29": ["Camera Day"],
+    "06-30": ["Meteor Watch Day"],
+    "07-01": ["International Joke Day", "National Gingersnap Day"],
+    "07-02": ["I Forgot Day", "World UFO Day", "National Anisette Day"],
+    "07-03": ["Compliment Your Mirror Day", "International Plastic Bag Free Day", "Eat Beans Day"],
+    "07-04": ["Sidewalk Egg Frying Day"],
+    "07-05": ["Workaholics Day", "National Apple Turnover Day"],
+    "07-06": ["World Kissing Day", "National Fried Chicken Day"],
+    "07-07": ["Tell the Truth Day", "National Day of Rock N' Roll", "World Chocolate Day", "Macaroni Day", "National Strawberry Sundae Day"],
+    "07-08": ["Math 2.0 Day", "Video Games Day", "National Chocolate with Almonds Day"],
+    "07-09": ["Sugar Cookie Day"],
+    "07-10": ["Clerihew Day", "Teddy Bears' Picnic Day", "National Pina Colada Day"],
+    "07-11": ["Cheer Up the Lonely Day", "National Blueberry Muffin Day"],
+    "07-12": ["Simplicity Day", "National Pecan Pie Day"],
+    "07-13": ["Embrace Your Geekness Day"],
+    "07-14": ["Pandemonium Day"],
+    "07-15": ["Gummi Worm Day", "Social Media Giving Day", "National Tapioca Pudding Day"],
+    "07-16": ["Corn Fritters Day", "Fresh Spinach Day"],
+    "07-17": ["Emoji Day", "Yellow Pig Day", "National Peach Ice Cream Day"],
+    "07-18": ["Caviar Day", "Insurance Nerd Day"],
+    "07-19": ["Ice Cream Day", "Stick Out Your Tongue Day"],
+    "07-20": ["Space Exploration Day", "National Fortune Cookie Day", "National Lollipop Day"],
+    "07-21": ["Junk Food Day", "International Lamington Day"],
+    "07-22": ["Pi Approximation Day", "National Penuche Fudge Day"],
+    "07-23": ["Vanilla Ice Cream Day", "Chocolate and Peanut Butter Day"],
+    "07-24": ["Cousins Day", "International Self Care Day", "National Tequila Day", "National Drive-Thru Day"],
+    "07-25": ["Culinarians Day", "National Hot Fudge Sundae Day"],
+    "07-26": ["Uncle and Aunt Day", "National Coffee Milkshake Day"],
+    "07-27": ["Take your Pants for a Walk Day", "National Creme Brulee Day", "National Scotch Day"],
+    "07-28": ["Milk Chocolate Day"],
+    "07-29": ["Lasagna Day", "National Chicken Wing Day"],
+    "07-30": ["National Cheesecake Day"],
+    "07-31": ["Uncommon Musical Instrument Day", "National Raspberry Cake Day"],
+    "08-01": ["National Girlfriend Day", "International Mahjong Day"],
+    "08-02": ["Ice Cream Sandwich Day", "Sisters' Day"],
+    "08-03": ["Watermelon Day", "National White Wine Day"],
+    "08-04": ["Single Working Women's Day", "National Chocolate Chip Cookie Day"],
+    "08-05": ["Work Like a Dog Day"],
+    "08-06": ["Fresh Breath Day", "National Root Beer Float Day"],
+    "08-07": ["International Beer Day", "Lighthouse Day"],
+    "08-08": ["Happiness Happens Day", "National Pickleball Day"],
+    "08-09": ["Book Lovers Day"],
+    "08-10": ["Lazy Day", "National S'mores Day"],
+    "08-11": ["Son and Daughter Day"],
+    "08-12": ["Middle Child Day"],
+    "08-13": ["Left-Handers Day", "National Filet Mignon Day"],
+    "08-14": ["Creamsicle Day"],
+    "08-15": ["Relaxation Day", "National Lemon Meringue Pie Day"],
+    "08-16": ["Tell a Joke Day", "National Rum Day"],
+    "08-17": ["Thrift Shop Day", "National Nonprofit Day", "National Vanilla Custard Day"],
+    "08-18": ["Mail Order Catalog Day", "National Pinot Noir Day"],
+    "08-19": ["World Photo Day", "National Potato Day"],
+    "08-20": ["Chocolate Pecan Pie Day"],
+    "08-21": ["Spumoni Day"],
+    "08-22": ["Be An Angel Day", "National Pecan Torte Day", "National Eat A Peach Day"],
+    "08-23": ["Ride Like the Wind Day", "National Sponge Cake Day"],
+    "08-24": ["Pluto Demoted Day", "National Peach Pie Day", "National Waffle Day"],
+    "08-25": ["Kiss and Make up Day", "National Banana Split Day", "National Whiskey Sour Day"],
+    "08-26": ["Dog Appreciation Day", "National Cherry Popsicle Day"],
+    "08-27": ["The Duchess Who Wasn't Day", "National Pots de Crème Day", "National Banana Lovers Day"],
+    "08-28": ["Bow Tie Day", "National Cherry Turnover Day"],
+    "08-29": ["According to Hoyle Day"],
+    "08-30": ["Frankenstein Day", "National Toasted Marshmallow Day"],
+    "08-31": ["Eat Outside Day", "Trail Mix Day"],
+    "09-01": ["Emma Nutt Day", "No Rhyme or Reason Day", "National Cherry Popover Day"],
+    "09-02": ["Bison Ten Yell Day", "National Blueberry Popsicle Day"],
+    "09-03": ["Skyscraper Day", "National Welsh Rarebit Day"],
+    "09-04": ["Eat an Extra Dessert Day", "National Wildlife Day", "National Macadamia Nut Day"],
+    "09-05": ["Be Late for Something Day", "Cheese Pizza Day"],
+    "09-06": ["Fight Procrastination Day", "Read a Book Day", "National Coffee Ice Cream Day"],
+    "09-07": ["Salami Day", "National Acorn Squash Day"],
+    "09-08": ["Pardon Day"],
+    "09-09": ["Teddy Bear Day", "National Steak Au Poivre Day", "Wiener Schnitzel Day"],
+    "09-10": ["Swap Ideas Day", "National TV Dinner Day"],
+    "09-11": ["Make Your Bed Day", "National Hot Cross Bun Day"],
+    "09-12": ["Chocolate Milkshake Day"],
+    "09-13": ["Hug Your Hound Day", "Positive Thinking Day", "Roald Dahl Day", "National Peanut Day"],
+    "09-14": ["National Eat a Hoagie Day", "National Cream-Filled Donut Day"],
+    "09-15": ["Make a Hat Day", "National Creme de Menthe Day", "National Double Cheeseburger Day", "National Linguine Day", "National Cheese Toast Day"],
+    "09-16": ["Collect Rocks Day", "Guacamole Day", "National Cinnamon-Raisin Bread Day"],
+    "09-17": ["International Country Music Day", "National Apple Dumpling Day", "National Monte Cristo Sandwich Day"],
+    "09-18": ["Rice Krispie Treat Day", "National Cheeseburger Day"],
+    "09-19": ["International Talk Like a Pirate Day", "National Gymnastics Day", "National Butterscotch Pudding Day"],
+    "09-20": ["Punch Day", "National Rum Punch Day", "National Queso Day"],
+    "09-21": ["Miniature Golf Day"],
+    "09-22": ["Hobbit Day", "National Girls Night"],
+    "09-23": ["Checkers Day"],
+    "09-24": ["Punctuation Day"],
+    "09-25": ["Comic Book Day", "National Daughter's Day", "National Lobster Day", "National Quesadilla Day"],
+    "09-26": ["Love Note Day", "National Better Breakfast Day"],
+    "09-27": ["Crush a Can Day", "National Chocolate Milk Day"],
+    "09-28": ["Ask a Stupid Question Day", "Good Neighbor Day", "Family Day - Eat Dinner with Your Children"],
+    "09-29": ["National Coffee Day", "National Biscotti Day"],
+    "09-30": ["Hot Mulled Cider Day"],
+    "10-01": ["Balloons Around the World Day", "International Coffee Day", "National Pumpkin Spice Day", "World Sake Day", "World Vegetarian Day"],
+    "10-02": ["Phileas Fogg Wager Day", "World Smile Day", "National Fried Scallops Day"],
+    "10-03": ["Card Making Day"],
+    "10-04": ["Taco Day", "National Vodka Day"],
+    "10-05": ["Chic Spy Day"],
+    "10-06": ["Mad Hatter Day"],
+    "10-07": ["Frappé Day"],
+    "10-08": ["Pierogi Day", "National Hero Day"],
+    "10-09": ["Curious Events Day", "International Beer and Pizza Day", "National Baking Soda Rocket Day"],
+    "10-10": ["Handbag Day", "National Walk to a Park Day", "World Porridge Day"],
+    "10-11": ["It's My Party Day", "National Sausage Pizza Day"],
+    "10-12": ["Old Farmers Day"],
+    "10-13": ["Ada Lovelace Day", "International Skeptics Day"],
+    "10-14": ["National Dessert Day"],
+    "10-15": ["I Love Lucy Day"],
+    "10-16": ["Dictionary Day", "World Food Day"],
+    "10-17": ["Sweetest Day", "Wear Something Gaudy Day"],
+    "10-18": ["Chocolate Cupcake Day"],
+    "10-19": ["National Clean Out Your Virtual Desktop Day"],
+    "10-20": ["International Sloth Day", "National Brandied Fruit Day", "National Office Chocolate Day"],
+    "10-21": ["Count your Buttons Day"],
+    "10-22": ["Caps Lock Day"],
+    "10-23": ["Mole Day", "National Boston Creme Pie Day"],
+    "10-24": ["Bologna Day", "World Tripe Day", "National Food Day"],
+    "10-25": ["Sourest Day", "National Greasy Food Day"],
+    "10-26": ["Howl at the Moon Day and Night", "National Pumpkin Day"],
+    "10-27": ["American Beer Day"],
+    "10-28": ["International Animation Day", "National Chocolate Day"],
+    "10-29": ["Internet Day", "National Oatmeal Day"],
+    "10-30": ["Candy Corn Day"],
+    "10-31": ["Magic Day", "National Candy Apple Day"],
+    "11-01": ["Author's Day", "Zero Tasking Day", "National Family Literacy Day", "National Vinegar Day", "National Cook For Your Pets Day"],
+    "11-02": ["Deviled Eggs Day", "National Pico de Gallo Day"],
+    "11-03": ["Sandwich Day"],
+    "11-04": ["Common Sense Day", "National Candy Day"],
+    "11-05": ["International Stout Day", "Men Make Dinner Day", "National Donut Day"],
+    "11-06": ["Saxophone Day", "National Nachos Day"],
+    "11-07": ["Bittersweet Chocolate with Almonds Day"],
+    "11-08": ["Tongue Twister Day", "National Harvey Wallbanger Day", "Cook Something Bold and Pungent Day"],
+    "11-09": ["Chaos Never Dies Day", "National Scrapple Day"],
+    "11-10": ["Forget Me Not Day", "Vanilla Cupcake Day"],
+    "11-11": ["Origami Day", "National Sundae Day"],
+    "11-12": ["Happy Hour Day", "National Pizza with the Works Except Anchovies Day", "Chicken Soup for the Soul Day"],
+    "11-13": ["Sadie Hawkins Day", "World Kindness Day"],
+    "11-14": ["Pickle Day", "Spicy Guacamole Day"],
+    "11-15": ["Clean Out Your Refrigerator Day", "National Philanthropy Day", "National Spicy Hermit Cookie Day"],
+    "11-16": ["Fast Food Day"],
+    "11-17": ["Take A Hike Day", "National Baklava Day", "Homemade Bread Day"],
+    "11-18": ["Push Button Phone Day", "National Princess Day", "National Vichyssoise Day", "National Apple Cider Day"],
+    "11-19": ["Use Less Stuff Day", "Carbonated Beverage with Caffeine Day"],
+    "11-20": ["National Absurdity Day", "National Peanut Butter Fudge Day"],
+    "11-21": ["World Hello Day", "National Gingerbread Cookie Day", "National Stuffing Day"],
+    "11-22": ["Go For a Ride Day"],
+    "11-23": ["Fibonacci Day", "National Cashew Day", "National Eat A Cranberry Day", "National Espresso Day"],
+    "11-24": ["Celebrate Your Unique Talent Day"],
+    "11-25": ["Shopping Reminder Day", "National Parfait Day"],
+    "11-26": ["Cake Day"],
+    "11-27": ["Buy Nothing Day"],
+    "11-28": ["Red Planet Day", "National French Toast Day"],
+    "11-29": ["Electronic Greeting Card Day", "Throw Out Your Leftovers Day", "National Chocolates Day"],
+    "11-30": ["Computer Security Day", "National Mousse Day"],
+    "12-01": ["Eat a Red Apple Day", "National Pie Day"],
+    "12-02": ["Fritters Day"],
+    "12-03": ["Make a Gift Day"],
+    "12-04": ["Wear Brown Shoes Day", "National Cookie Day"],
+    "12-05": ["Day of the Ninja"],
+    "12-06": ["Microwave Oven Day", "Put on Your Own Shoes Day"],
+    "12-07": ["Letter Writing Day", "National Slime Day"],
+    "12-08": ["Pretend to Be a Time Traveler Day", "National Brownie Day"],
+    "12-09": ["Christmas Card Day", "National Pastry Day"],
+    "12-10": ["Dewey Decimal System Day", "Jane Addams Day"],
+    "12-11": ["Noodle Ring Day", "Official Lost and Found Day"],
+    "12-12": ["Gingerbread House Day"],
+    "12-14": ["Free Shipping Day", "Monkey Day"],
+    "12-15": ["National Cupcake Day"],
+    "12-16": ["Chocolate Covered Anything Day"],
+    "12-17": ["Wright Brothers Day"],
+    "12-18": ["Underdog Day"],
+    "12-20": ["Sangria Day", "Go Caroling Day", "National Cortado Day"],
+    "12-21": ["International Dalek Remembrance Day"],
+    "12-22": ["Date Nut Bread Day"],
+    "12-23": ["Festivus"],
+    "12-24": ["Eggnog Day"],
+    "12-25": ["A'phabet Day or No \"L\" Day", "Grav Mass Day", "National Pumpkin Pie Day"],
+    "12-26": ["Thank You Note Day", "National Candy Cane Day"],
+    "12-27": ["No Interruptions Day", "National Fruitcake Day"],
+    "12-28": ["Card Playing Day"],
+    "12-29": ["Pepper Pot Day"],
+    "12-30": ["Bicarbonate of Soda Day"],
+    "12-31": ["Make Up Your Mind Day", "National Champagne Day"],
+}
+
+
+# Floating holidays: (month, weekday Mon=0..Sun=6, n; n=-1 means last).
+FLOATING = [
+    (1, 6, 2, "National Sunday Supper Day"),
+    (1, 2, 4, "Library Shelfie Day"),
+    (1, 4, -1, "National Fun at Work Day"),
+    (2, 3, 4, "National Chili Day"),
+    (3, 4, 1, "National Employee Appreciation Day"),
+    (4, 4, -1, "National Arbor Day"),
+    (5, 6, 1, "World Laughter Day"),
+    (5, 6, 1, "National Lemonade Day"),
+    (6, 2, 1, "Global Running Day"),
+    (6, 5, 2, "Family Health and Fitness Day"),
+    (7, 6, 3, "National Ice Cream Day"),
+    (7, 6, 4, "National Parents Day"),
+    (7, 3, 4, "National Chili Dog Day"),
+    (7, 4, 2, "National French Fries Day"),
+    (8, 5, 1, "Sandcastle Day"),
+    (8, 5, 1, "National Mustard Day"),
+    (8, 5, 1, "National Mead Day"),
+    (9, 5, 3, "National Cleanup Day"),
+    (10, 5, 4, "National Make a Difference Day"),
+    (11, 2, 1, "National Eating Healthy Day"),
+    (12, 4, 3, "National Ugly Christmas Sweater Day"),
+]
+
+
+def easter(year: int) -> datetime.date:
+    """Gregorian Easter (anonymous computus)."""
+    a, b, c = year % 19, year // 100, year % 100
+    d, e = b // 4, b % 4
+    g = (8 * b + 13) // 25
+    h = (19 * a + b - d - g + 15) % 30
+    i, k = c // 4, c % 4
+    l = (32 + 2 * e + 2 * i - h - k) % 7
+    m = (a + 11 * h + 19 * l) // 433
+    month = (h + l - 7 * m + 90) // 25
+    day = (h + l - 7 * m + 33 * month + 19) % 32
+    return datetime.date(year, month, day)
+
+
+def nth_weekday(year: int, month: int, weekday: int, n: int) -> datetime.date:
+    if n > 0:
+        first = datetime.date(year, month, 1)
+        return first + datetime.timedelta(days=(weekday - first.weekday()) % 7 + 7 * (n - 1))
+    nxt = datetime.date(year + (month == 12), month % 12 + 1, 1)
+    last = nxt - datetime.timedelta(days=1)
+    return last - datetime.timedelta(days=(last.weekday() - weekday) % 7)
+
+
+def floating_for(day: datetime.date) -> list[str]:
+    names = [
+        name
+        for month, weekday, n, name in FLOATING
+        if day.month == month and day == nth_weekday(day.year, month, weekday, n)
+    ]
+    memorial = nth_weekday(day.year, 5, 0, -1)  # last Monday in May
+    if day == memorial - datetime.timedelta(days=1):
+        names.append("National Family Fun Day")
+    thanksgiving = nth_weekday(day.year, 11, 3, 4)  # 4th Thursday in November
+    if day == thanksgiving + datetime.timedelta(days=5):
+        names.append("Giving Tuesday")
+    if day == thanksgiving + datetime.timedelta(days=1):
+        names.append("Sinkie Day")
+    delta = (easter(day.year) - day).days
+    if delta == 52:
+        names.append("Fat Thursday")
+    elif delta == 47:
+        names.append("Shrove Tuesday (Pancake Day)")
+    elif delta == 44:
+        names.append("Friday Fish Fry Day")  # first Friday of Lent
+    return names
+
+
+def clean(text: str) -> str:
+    """Fold accents and smart quotes down to the board's character set."""
+    text = text.replace("’", "'").replace("‘", "'")
+    text = unicodedata.normalize("NFKD", text)
+    text = "".join(c for c in text if not unicodedata.combining(c))
+    return "".join(c for c in text.upper() if c in CHAR_TO_CODE)
+
+
+def holiday_for(day: datetime.date) -> str | None:
+    options = HOLIDAYS.get(day.strftime("%m-%d"), []) + floating_for(day)
+    if not options:
+        return None
+    return options[day.year % len(options)]  # rotate the pick year to year
+
+
+def build_grid(day: datetime.date) -> list[list[int]]:
+    doy = day.timetuple().tm_yday
+    c1 = "{%s}" % PALETTE[doy % 6]
+    c2 = "{%s}" % PALETTE[(doy + 3) % 6]
+    g = blank_grid()
+    set_row(g, 0, f"{c1}{c2} TODAY IS {c1}{c2}", align="center")
+    lines = wrap(clean(holiday_for(day)), max_lines=3)
+    first = 3 - (len(lines) - 1) // 2  # 1 line -> row 3, 2 -> 3-4, 3 -> 2-4
+    for i, line in enumerate(lines):
+        set_row(g, first + i, line, align="center")
+    set_row(g, 5, f"{c1} {c2} {c1} {c2} {c1} {c2}", align="center")
+    return g
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Fun holidays channel")
+    parser.add_argument("--post", action="store_true", help="post to the board")
+    parser.add_argument("--dry-run", action="store_true", help="preview only (default)")
+    parser.add_argument("--date", help="override today's date (YYYY-MM-DD), for testing")
+    args = parser.parse_args()
+
+    day = (
+        datetime.date.fromisoformat(args.date)
+        if args.date
+        else datetime.datetime.now(TZ).date()
+    )
+    holiday = holiday_for(day)
+    if holiday is None:
+        print(f"No fun holiday listed for {day} - skipping (nothing posted).")
+        return 0
+
+    print(f"Fun holiday for {day}: {holiday}")
+    grid = build_grid(day)
+    print_grid(grid)
+
+    if args.post and not args.dry_run:
+        post_characters(grid)
+        print("Posted to the board.")
+    else:
+        print("Dry run - nothing was posted. Use --post to send to the board.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
