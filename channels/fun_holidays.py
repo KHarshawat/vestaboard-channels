@@ -1,9 +1,10 @@
 """Fun Holidays channel - funny, random & weird holidays, every day.
 
 The calendar lives in this file, keyed by "MM-DD". When a date has
-several holidays, the pick rotates by year so repeat dates stay fresh.
-Days with no entry are skipped. The header color rotates daily through
-the tile palette, with a two-color confetti row at the bottom.
+several holidays, as many as fit are listed together, each bulleted
+with a color tile. Days with no entry are skipped. The header color
+rotates daily through the tile palette, with a confetti row at the
+bottom when space allows.
 
 Usage:
     python -m channels.fun_holidays                     # preview (default)
@@ -461,11 +462,8 @@ def clean(text: str) -> str:
     return "".join(c for c in text.upper() if c in CHAR_TO_CODE)
 
 
-def holiday_for(day: datetime.date) -> str | None:
-    options = HOLIDAYS.get(day.strftime("%m-%d"), []) + floating_for(day)
-    if not options:
-        return None
-    return options[day.year % len(options)]  # rotate the pick year to year
+def holidays_for(day: datetime.date) -> list[str]:
+    return HOLIDAYS.get(day.strftime("%m-%d"), []) + floating_for(day)
 
 
 def build_grid(day: datetime.date) -> list[list[int]]:
@@ -474,11 +472,34 @@ def build_grid(day: datetime.date) -> list[list[int]]:
     c2 = "{%s}" % PALETTE[(doy + 3) % 6]
     g = blank_grid()
     set_row(g, 0, f"{c1}{c2} TODAY IS {c1}{c2}", align="center")
-    lines = wrap(clean(holiday_for(day)), max_lines=3)
-    first = 3 - (len(lines) - 1) // 2  # 1 line -> row 3, 2 -> 3-4, 3 -> 2-4
-    for i, line in enumerate(lines):
-        set_row(g, first + i, line, align="center")
-    set_row(g, 5, f"{c1} {c2} {c1} {c2} {c1} {c2}", align="center")
+    options = holidays_for(day)
+
+    if len(options) == 1:
+        lines = wrap(clean(options[0]), max_lines=3)
+        first = 3 - (len(lines) - 1) // 2  # 1 line -> row 3, 2 -> 3-4, 3 -> 2-4
+        for i, line in enumerate(lines):
+            set_row(g, first + i, line, align="center")
+        set_row(g, 5, f"{c1} {c2} {c1} {c2} {c1} {c2}", align="center")
+        return g
+
+    # Several holidays: list as many as fully fit (shortest first packs the
+    # most in), each bulleted with an alternating color tile.
+    entries = sorted((wrap(clean(h), 20, max_lines=4) for h in options), key=len)
+    packed: list[list[str]] = []
+    rows_left = 5
+    for lines in entries:
+        if len(lines) <= rows_left:
+            packed.append(lines)
+            rows_left -= len(lines)
+    used = 5 - rows_left
+    row = 1 if used == 5 else 1 + (4 - used) // 2
+    for i, lines in enumerate(packed):
+        bullet = c1 if i % 2 == 0 else c2
+        for j, line in enumerate(lines):
+            set_row(g, row, f"{bullet} {line}" if j == 0 else line, align="center")
+            row += 1
+    if used <= 4:
+        set_row(g, 5, f"{c1} {c2} {c1} {c2} {c1} {c2}", align="center")
     return g
 
 
@@ -494,12 +515,12 @@ def main() -> int:
         if args.date
         else datetime.datetime.now(TZ).date()
     )
-    holiday = holiday_for(day)
-    if holiday is None:
+    holidays = holidays_for(day)
+    if not holidays:
         print(f"No fun holiday listed for {day} - skipping (nothing posted).")
         return 0
 
-    print(f"Fun holiday for {day}: {holiday}")
+    print(f"Fun holidays for {day}: {', '.join(holidays)}")
     grid = build_grid(day)
     print_grid(grid)
 
