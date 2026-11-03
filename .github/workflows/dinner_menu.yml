@@ -16,6 +16,12 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      - run: python -m channels.dinner_menu --post
+      # Skip if GitHub fired this cron hours late (avoids posting stale
+      # content at the wrong time of day / into quiet hours -> 423).
+      - id: guard
+        if: github.event_name == 'schedule'
+        run: echo "fresh=$(python -m vestaboard.cron_guard '${{ github.event.schedule }}')" >> "$GITHUB_OUTPUT"
+      - if: github.event_name != 'schedule' || steps.guard.outputs.fresh == 'yes'
+        run: python -m channels.dinner_menu --post
         env:
           VESTABOARD_TOKEN: ${{ secrets.VESTABOARD_TOKEN }}

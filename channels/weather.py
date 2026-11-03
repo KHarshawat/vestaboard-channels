@@ -127,7 +127,8 @@ def fmt_wind(speed: str, direction: str) -> str:
     nums = re.findall(r"\d+", speed)
     n = nums[-1] if nums else "?"
     wind = f"{direction}{n}MPH"
-    return wind if len(wind) <= 8 else f"{n}MPH"
+    # cap at 7 so a space always separates it from the WIND label
+    return wind if len(wind) <= 7 else f"{n}MPH"
 
 
 _ABBREV = [
