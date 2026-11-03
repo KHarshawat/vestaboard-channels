@@ -382,9 +382,12 @@ def main() -> int:
         help="a sequence (morning/evening/all) or a single page",
     )
     parser.add_argument(
-        "--gap", type=int, default=180, help="seconds between posts (default 180)"
+        "--gap", type=int, default=None,
+        help="seconds between posts (default: 600 for morning, 180 otherwise)",
     )
     args = parser.parse_args()
+    if args.gap is None:
+        args.gap = 600 if args.view == "morning" else 180
     posting = args.post and not args.dry_run
     pages = SEQUENCES.get(args.view, [args.view])
 

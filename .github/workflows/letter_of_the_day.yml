@@ -2,9 +2,9 @@ name: Letter of the Day
 
 on:
   schedule:
-    # 14:00 UTC = 7:00am PDT. During PST (Nov-Mar) this fires at 6:00am
-    # Pacific — GitHub cron is UTC-only, so the DST shift is accepted.
-    - cron: "0 14 * * *"
+    # 15:00 UTC = 7:00am PST (8:00am PDT in summer — DST shift accepted).
+    # Opens the 7-8am block: letter, then weather pages until muni at 8.
+    - cron: "0 15 * * *"
   workflow_dispatch: {}
 
 jobs:

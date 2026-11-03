@@ -2,11 +2,11 @@ name: Weather
 
 on:
   schedule:
-    # Morning: 14:30 UTC = 7:30am PDT (6:30am PST in winter — DST shift
-    # accepted). Staggered after letter_of_the_day (14:00) so posts
-    # don't collide. Posts: today, timeline, 5-day, then rain/heat/
-    # alerts/AQI pages only when conditions warrant.
-    - cron: "30 14 * * *"
+    # Morning: 15:15 UTC = 7:15am PST (8:15am PDT in summer — DST shift
+    # accepted). After letter_of_the_day (15:00); pages post 10 min apart
+    # (today 7:15, timeline 7:25, 5-day 7:35, conditionals 7:45/7:55)
+    # filling the hour until muni at 8:00.
+    - cron: "15 15 * * *"
     # Evening: 04:30 UTC = 8:30pm PST (9:30pm PDT). Posts: tomorrow's
     # forecast, plus an alert page if NWS has one active.
     - cron: "30 4 * * *"
