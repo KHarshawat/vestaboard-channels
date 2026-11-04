@@ -1,0 +1,27 @@
+name: Election Night
+
+# Manual-dispatch only: run this on election nights. One job loops
+# fetch -> post every minute (GitHub cron cannot fire per-minute), only
+# re-posting the board when seat counts change. Re-dispatch to extend
+# beyond the duration.
+
+on:
+  workflow_dispatch:
+    inputs:
+      duration:
+        description: Minutes to keep refreshing (max ~350)
+        default: "300"
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: python -m channels.election --post --watch --duration ${{ inputs.duration }}
+        env:
+          VESTABOARD_TOKEN: ${{ secrets.VESTABOARD_TOKEN }}
