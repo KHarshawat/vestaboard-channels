@@ -1,10 +1,47 @@
 # Onboarding / session handoff
 
-Context for picking up work on this repo (last updated 2026-11-04).
+Context for picking up work on this repo (last updated 2026-11-05).
 Read CLAUDE.md first for board facts and conventions; this file is
 project state.
 
-## What's built (channel → script + workflow, times are PST; +1h in PDT)
+## Current state (2026-11-05): moving the scheduler to Cloudflare
+
+GitHub cron fired every scheduled run 4–8 hours late (Oct 31 – Nov 4, every
+workflow, no exceptions; see the Nov 4 note below). Kavi chose to run
+everything from a Cloudflare Worker instead, TypeScript, with the morning
+weather pages cycling one per minute over the half hour. Election stays
+Python/manual. Quiet hours are Kavi's to handle in the Vestaboard app.
+
+Built on branch `claude/code-onboarding-iksojp` (not yet merged/deployed):
+
+- `worker/` — Cloudflare Worker. Cron `* * * * *`; `src/schedule.ts` maps
+  Pacific wall-clock minutes to posts (DST-correct via Intl). Channels
+  ported: letter, weather (all 8 pages), muni, holidays, dinner, moon.
+  `GET /preview/<channel>` dry-run, `POST /run/<channel>` with ADMIN_TOKEN.
+- `worker/test/` — vitest parity suite: `gen_parity.py` runs the Python
+  channels on fixed dates/fixtures and the TS port must match cell for cell
+  (369 holiday days, 215 moon dates, 3 weather scenarios, muni, dinner,
+  letter). All green. Verified under workerd with `wrangler dev`.
+- `.github/workflows/deploy_worker.yml` — deploys on push to main
+  (worker/** or menu.json) via cloudflare/wrangler-action, uploading
+  VESTABOARD_TOKEN / TRANSIT_511_API_KEY / ADMIN_TOKEN as Worker secrets.
+- GitHub `schedule:` triggers removed from all channel workflows (now
+  `workflow_dispatch` only, manual fallback). `vestaboard/cron_guard.py`
+  deleted.
+
+**Waiting on Kavi** (then merge to main = first deploy):
+1. Cloudflare dashboard: Account ID; API token (Edit Cloudflare Workers
+   template); open Workers & Pages once so a workers.dev subdomain exists.
+2. Repo secrets: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, ADMIN_TOKEN.
+3. Optional, for Claude to deploy/tail directly from a session: the same
+   two Cloudflare values as environment secrets, and allow
+   api.cloudflare.com + developers.cloudflare.com in the session network.
+
+Schedule now (Pacific, DST-correct): 7:00 letter; 7:15–7:45 weather pages
+cycling one per minute; 8:00 muni; 8:15 + 12:00 holidays; 4:30pm dinner;
+5:00pm moon; 8:30pm tomorrow; 8:33pm NWS alert if active.
+
+## What was built on GitHub Actions (times are PST; +1h in PDT) — now manual fallback
 
 | Slot | Channel | Notes |
 |---|---|---|
@@ -22,15 +59,11 @@ Sunset computed locally (NOAA equation). AQI: Open-Meteo (keyless).
 
 ## Critical operational knowledge
 
-- **GitHub cron fires 4–8 HOURS late in this repo** (observed Nov 3–4).
-  Every workflow runs `vestaboard/cron_guard.py` first and skips cleanly
-  when the schedule event fired beyond a per-channel grace window
-  (letter 180 min, weather 150, muni 45, holidays 240, dinner 180, moon
-  240). Manual `workflow_dispatch` always runs and starts in seconds.
-- **Proposed real fix (pending Kavi's decision):** external scheduler
-  (cron-job.org or Cloudflare Worker cron) calling the GitHub API
-  `workflow_dispatch` at exact times with a fine-grained PAT
-  (actions:write on this repo). Kavi hasn't created the PAT yet.
+- **GitHub cron fired 4–8 HOURS late in this repo** (every scheduled run
+  Oct 31 – Nov 4). The cron_guard workaround skipped late runs; the real
+  fix is the Cloudflare Worker above. Manual `workflow_dispatch` always
+  started in seconds. Dispatching two channels within 15 s of each other
+  gets a 429 from the board (happened Nov 4); the Worker client retries.
 - **The board has overnight quiet hours** (exact window unknown; mutes
   observed ~11pm–7am). A muted board returns HTTP 423 and the client
   exits non-zero. Kavi also runs native Vestaboard-app channels that
@@ -113,6 +146,17 @@ Excluded by Kavi: sports scores, kid trivia, countdowns.
 - **Nov 4 — morning sequence missed again** (crons 4-8h late, guard
   skipped). Dispatched manually, widened grace per channel, proposed
   external scheduler as the real fix (pending PAT from Kavi).
+- **Nov 5 — Cloudflare port.** Pulled the Actions run history to show
+  Kavi every cron was 4–8 h late. Options laid out (self-chaining
+  workflow, Cloudflare-as-clock, full port); Kavi chose the full
+  TypeScript port on Cloudflare, with the weather pages cycling one per
+  minute over the morning half hour, election left as-is, quiet hours
+  handled in the app. Built `worker/` + parity tests + deploy workflow,
+  removed GitHub schedules. Design choices: every-minute cron + Pacific
+  slot table (one trigger, fixes DST, no sleeps); no KV cache — each
+  weather minute refetches NWS (3 parallel GETs, well under the free
+  plan's 10 ms CPU); if logs ever show CPU limit errors, the $5 paid plan
+  is the fix. NWS calls send the repo User-Agent.
 
 ## Style notes
 

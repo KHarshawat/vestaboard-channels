@@ -1,0 +1,51 @@
+name: Deploy Worker
+
+# Deploys worker/ to Cloudflare on every push to main that touches it (or
+# menu.json, which is bundled into the Worker). Push-triggered workflows
+# start within seconds; only GitHub's `schedule` trigger was unreliable.
+#
+# Repo secrets needed:
+#   CLOUDFLARE_API_TOKEN    "Edit Cloudflare Workers" template token
+#   CLOUDFLARE_ACCOUNT_ID   from the Cloudflare dashboard
+#   VESTABOARD_TOKEN        (already set) -> uploaded as a Worker secret
+#   TRANSIT_511_API_KEY     (already set) -> uploaded as a Worker secret
+#   ADMIN_TOKEN             any long random string; bearer token for POST /run/<channel>
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "worker/**"
+      - "menu.json"
+      - ".github/workflows/deploy_worker.yml"
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+      - run: npm ci
+        working-directory: worker
+      - run: npm test
+        working-directory: worker
+      - run: npm run typecheck
+        working-directory: worker
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: worker
+          secrets: |
+            VESTABOARD_TOKEN
+            TRANSIT_511_API_KEY
+            ADMIN_TOKEN
+        env:
+          VESTABOARD_TOKEN: ${{ secrets.VESTABOARD_TOKEN }}
+          TRANSIT_511_API_KEY: ${{ secrets.TRANSIT_511_API_KEY }}
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}

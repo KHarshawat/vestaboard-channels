@@ -1,9 +1,8 @@
 name: Muni
 
+# Manual fallback only. The schedule moved to the Cloudflare Worker in
+# worker/ (see worker/src/schedule.ts); GitHub's cron fired 4-8 hours late.
 on:
-  schedule:
-    # 16:00 UTC = 8:00am PST (9:00am PDT in summer — DST shift accepted).
-    - cron: "0 16 * * *"
   workflow_dispatch: {}
 
 jobs:
@@ -15,13 +14,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      # Skip if GitHub fired this cron hours late (avoids posting stale
-      # content at the wrong time of day / into quiet hours -> 423).
-      - id: guard
-        if: github.event_name == 'schedule'
-        run: echo "fresh=$(python -m vestaboard.cron_guard '${{ github.event.schedule }}' 45)" >> "$GITHUB_OUTPUT"
-      - if: github.event_name != 'schedule' || steps.guard.outputs.fresh == 'yes'
-        run: python -m channels.muni --post
+      - run: python -m channels.muni --post
         env:
           VESTABOARD_TOKEN: ${{ secrets.VESTABOARD_TOKEN }}
           TRANSIT_511_API_KEY: ${{ secrets.TRANSIT_511_API_KEY }}

@@ -1,10 +1,8 @@
 name: Dinner Menu
 
+# Manual fallback only. The schedule moved to the Cloudflare Worker in
+# worker/ (see worker/src/schedule.ts); GitHub's cron fired 4-8 hours late.
 on:
-  schedule:
-    # 00:30 UTC = 4:30pm PST (5:30pm PDT in summer — DST shift accepted).
-    # Before the 01:00 moon phase post. Skips days with no menu entry.
-    - cron: "30 0 * * *"
   workflow_dispatch: {}
 
 jobs:
@@ -16,12 +14,6 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      # Skip if GitHub fired this cron hours late (avoids posting stale
-      # content at the wrong time of day / into quiet hours -> 423).
-      - id: guard
-        if: github.event_name == 'schedule'
-        run: echo "fresh=$(python -m vestaboard.cron_guard '${{ github.event.schedule }}' 180)" >> "$GITHUB_OUTPUT"
-      - if: github.event_name != 'schedule' || steps.guard.outputs.fresh == 'yes'
-        run: python -m channels.dinner_menu --post
+      - run: python -m channels.dinner_menu --post
         env:
           VESTABOARD_TOKEN: ${{ secrets.VESTABOARD_TOKEN }}

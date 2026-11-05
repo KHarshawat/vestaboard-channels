@@ -1,0 +1,154 @@
+{
+ "A": [
+  "APPLE",
+  "ANT",
+  "ARM",
+  "AXE"
+ ],
+ "B": [
+  "BALL",
+  "BEAR",
+  "BUS",
+  "BEE"
+ ],
+ "C": [
+  "CAT",
+  "CAKE",
+  "CAR",
+  "COW"
+ ],
+ "D": [
+  "DOG",
+  "DUCK",
+  "DOOR",
+  "DRUM"
+ ],
+ "E": [
+  "EGG",
+  "EAR",
+  "ELF",
+  "EEL"
+ ],
+ "F": [
+  "FISH",
+  "FROG",
+  "FAN",
+  "FOX"
+ ],
+ "G": [
+  "GOAT",
+  "GAME",
+  "GUM",
+  "GIFT"
+ ],
+ "H": [
+  "HAT",
+  "HEN",
+  "HAND",
+  "HOME"
+ ],
+ "I": [
+  "ICE",
+  "INK",
+  "INCH",
+  "IGLOO"
+ ],
+ "J": [
+  "JAM",
+  "JET",
+  "JUMP",
+  "JAR"
+ ],
+ "K": [
+  "KITE",
+  "KEY",
+  "KING",
+  "KOALA"
+ ],
+ "L": [
+  "LION",
+  "LEG",
+  "LAMP",
+  "LEAF"
+ ],
+ "M": [
+  "MOON",
+  "MAP",
+  "MILK",
+  "MOUSE"
+ ],
+ "N": [
+  "NEST",
+  "NOSE",
+  "NET",
+  "NAP"
+ ],
+ "O": [
+  "OWL",
+  "OAK",
+  "OTTER",
+  "OVEN"
+ ],
+ "P": [
+  "PIG",
+  "PEN",
+  "PARK",
+  "PLUM"
+ ],
+ "Q": [
+  "QUEEN",
+  "QUILT",
+  "QUIZ"
+ ],
+ "R": [
+  "RAIN",
+  "RUG",
+  "ROCK",
+  "ROSE"
+ ],
+ "S": [
+  "SUN",
+  "STAR",
+  "SOCK",
+  "SHIP"
+ ],
+ "T": [
+  "TREE",
+  "TOY",
+  "TENT",
+  "TIGER"
+ ],
+ "U": [
+  "UP",
+  "UNDER",
+  "UNCLE"
+ ],
+ "V": [
+  "VAN",
+  "VEST",
+  "VINE"
+ ],
+ "W": [
+  "WAVE",
+  "WORM",
+  "WEB",
+  "WING"
+ ],
+ "X": [
+  "X-RAY",
+  "XYLOPHONE",
+  "BOX"
+ ],
+ "Y": [
+  "YAK",
+  "YARN",
+  "YO-YO",
+  "YES"
+ ],
+ "Z": [
+  "ZOO",
+  "ZEBRA",
+  "ZERO",
+  "ZIP"
+ ]
+}

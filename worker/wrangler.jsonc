@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "vestaboard-channels",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  // Fire every minute; src/schedule.ts decides what (if anything) to post
+  // based on Pacific local time, so DST is handled correctly.
+  "triggers": { "crons": ["* * * * *"] },
+  // Workers Logs (free tier) so `wrangler tail` and the dashboard show
+  // what each minute did.
+  "observability": { "enabled": true },
+  "workers_dev": true
+  // Secrets (set with `wrangler secret put` or by the deploy workflow):
+  //   VESTABOARD_TOKEN      Read/Write API key
+  //   TRANSIT_511_API_KEY   511.org key for the muni channel
+  //   ADMIN_TOKEN           bearer token for manual POST /run/<channel>
+}

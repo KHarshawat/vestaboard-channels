@@ -1,11 +1,8 @@
 name: Moon Phase
 
+# Manual fallback only. The schedule moved to the Cloudflare Worker in
+# worker/ (see worker/src/schedule.ts); GitHub's cron fired 4-8 hours late.
 on:
-  schedule:
-    # 01:00 UTC = 5:00pm PST (6:00pm PDT in summer — DST shift accepted).
-    # Evening slot: after the 14:30 weather morning run, before the
-    # 04:30 weather evening run.
-    - cron: "0 1 * * *"
   workflow_dispatch: {}
 
 jobs:
@@ -17,12 +14,6 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      # Skip if GitHub fired this cron hours late (avoids posting stale
-      # content at the wrong time of day / into quiet hours -> 423).
-      - id: guard
-        if: github.event_name == 'schedule'
-        run: echo "fresh=$(python -m vestaboard.cron_guard '${{ github.event.schedule }}' 240)" >> "$GITHUB_OUTPUT"
-      - if: github.event_name != 'schedule' || steps.guard.outputs.fresh == 'yes'
-        run: python -m channels.moon_phase --post
+      - run: python -m channels.moon_phase --post
         env:
           VESTABOARD_TOKEN: ${{ secrets.VESTABOARD_TOKEN }}

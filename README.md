@@ -1,18 +1,74 @@
 # vestaboard-channels
 
-Custom channels for a Vestaboard Flagship (6 rows × 22 columns). Each channel
-is a Python script in `channels/` that builds a message and posts it to the
-board, run on a schedule by a GitHub Actions workflow.
+Custom channels for a Vestaboard Flagship (6 rows × 22 columns). The board is
+driven by a Cloudflare Worker in `worker/` (TypeScript) that fires every
+minute and posts whatever the Pacific-time schedule says is due. The original
+Python channels in `channels/` remain as a manual fallback and as the
+reference the TypeScript port is tested against.
+
+## How it runs
+
+- `worker/src/schedule.ts` is the daily schedule in Pacific wall-clock time
+  (DST-correct). A slot with `at` posts once; a block with `from`/`until`
+  cycles the channel's pages one per minute (the morning weather block).
+- `worker/src/channels/*.ts` build 6×22 grids. `menu.json` and the holiday
+  calendar are bundled into the Worker at deploy time.
+- `.github/workflows/deploy_worker.yml` deploys on every push to `main` that
+  touches `worker/` or `menu.json`. Push-triggered Actions start within
+  seconds; GitHub's `schedule` trigger (4–8 h late) is no longer used.
 
 ## Setup
 
-1. Get a Read/Write API key from https://web.vestaboard.com.
-2. Add it as a repo secret named `VESTABOARD_TOKEN`
-   (Settings → Secrets and variables → Actions → New repository secret).
-3. For local runs: `cp .env.example .env`, fill in the token, and
-   `export VESTABOARD_TOKEN=...` (or use your favorite .env loader).
+1. Vestaboard Read/Write API key from https://web.vestaboard.com.
+2. Cloudflare account (free plan is enough). From the dashboard note the
+   Account ID and create an API token with the **Edit Cloudflare Workers**
+   template (My Profile → API Tokens).
+3. Repo secrets (Settings → Secrets and variables → Actions):
+   `VESTABOARD_TOKEN`, `TRANSIT_511_API_KEY`, `CLOUDFLARE_API_TOKEN`,
+   `CLOUDFLARE_ACCOUNT_ID`, `ADMIN_TOKEN` (any long random string; it
+   protects the manual-post endpoint).
+4. Push to `main` (or run the *Deploy Worker* workflow). The deploy uploads
+   the board/511/admin secrets to the Worker.
 
-## Run locally
+## Worker endpoints
+
+The Worker is at `https://vestaboard-channels.<your-subdomain>.workers.dev`.
+
+```
+GET  /                                   schedule + what this minute would post
+GET  /preview/<channel>?date=YYYY-MM-DD   ASCII dry run (never posts)
+GET  /preview/weather?page=morning|evening|all|today|timeline|forecast|tomorrow|rain|heat|alerts|aqi
+POST /run/<channel>?page=..&index=..     post now (header: Authorization: Bearer <ADMIN_TOKEN>)
+```
+
+Channels: `letter`, `weather`, `muni`, `holidays`, `dinner`, `moon`.
+
+## Develop
+
+```sh
+cd worker
+npm install
+npm test            # parity tests against grids produced by the Python channels
+npm run typecheck
+npm run dev         # local Worker on http://localhost:8787 (+ /__scheduled?cron=*+*+*+*+*&time=<ms>)
+npm run tail        # live logs from the deployed Worker (needs wrangler login or CLOUDFLARE_API_TOKEN)
+```
+
+The parity fixtures come from `python worker/test/gen_parity.py` (run from the
+repo root); regenerate them if the Python channels change.
+
+## Change the schedule
+
+Edit `worker/src/schedule.ts` and push to `main`. Times are Pacific.
+
+## Add a channel
+
+1. `worker/src/channels/<name>.ts` exporting a `Channel` (see `letter.ts`
+   for the smallest example) and register it in `worker/src/channels/index.ts`.
+2. Add a slot in `worker/src/schedule.ts`.
+3. Preview with `npm run dev` and `curl localhost:8787/preview/<name>`.
+
+## Python fallback
 
 ```sh
 pip install -r requirements.txt
@@ -20,15 +76,6 @@ python -m channels.letter_of_the_day --dry-run   # ASCII preview, posts nothing
 python -m channels.letter_of_the_day --post      # actually posts to the board
 ```
 
-Channels never post unless given `--post`; the default is a dry-run preview.
-
-## Add a new channel
-
-1. Create `channels/my_channel.py`. Build a grid with the helpers in
-   `vestaboard/` (`blank_grid`, `set_row`, `text_to_row`, `color`), preview it
-   with `print_grid`, and post it with `post_characters` only when `--post`
-   is passed (copy the argparse block from `letter_of_the_day.py`).
-2. Create `.github/workflows/my_channel.yml` — copy
-   `letter_of_the_day.yml`, change the name, cron, and script path. Cron is
-   UTC; 7am Pacific ≈ `0 14 * * *` (shifts an hour with DST).
-3. Test with `python -m channels.my_channel --dry-run` before merging.
+Each Python channel still has a `workflow_dispatch`-only GitHub workflow.
+`channels/election.py` (election-night live results) is Python-only and runs
+from its workflow on demand.

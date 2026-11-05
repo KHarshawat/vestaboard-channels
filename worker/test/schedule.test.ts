@@ -1,0 +1,45 @@
+import { describe, expect, it } from "vitest";
+import { SCHEDULE, slotAt } from "../src/schedule";
+import { localParts, zonedTime } from "../src/time";
+
+describe("schedule", () => {
+  it("posts the letter at 7:00 and nothing at 7:01", () => {
+    expect(slotAt("07:00")?.slot.channel).toBe("letter");
+    expect(slotAt("07:01")).toBeNull();
+  });
+
+  it("cycles weather pages one per minute from 7:15 until 7:45", () => {
+    expect(slotAt("07:14")).toBeNull();
+    expect(slotAt("07:15")).toEqual({ slot: SCHEDULE[1], offset: 0 });
+    expect(slotAt("07:22")).toEqual({ slot: SCHEDULE[1], offset: 7 });
+    expect(slotAt("07:44")?.offset).toBe(29);
+    expect(slotAt("07:45")).toBeNull();
+  });
+
+  it("has no overlapping slots across the whole day", () => {
+    const seen = new Map<string, string>();
+    for (let m = 0; m < 24 * 60; m++) {
+      const hhmm = `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+      const hits = SCHEDULE.filter((s) =>
+        s.at === hhmm || (s.from && s.until && hhmm >= s.from && hhmm < s.until));
+      expect(hits.length, hhmm).toBeLessThanOrEqual(1);
+      if (hits.length) seen.set(hhmm, hits[0].channel);
+    }
+    expect(seen.size).toBe(8 + 30); // 8 single posts + 30 weather minutes
+  });
+});
+
+describe("Pacific time", () => {
+  it("maps the cron's UTC instant to Pacific wall-clock in both PST and PDT", () => {
+    expect(localParts(new Date("2026-11-05T15:00:00Z")).hhmm).toBe("07:00"); // PST
+    expect(localParts(new Date("2026-07-14T14:00:00Z")).hhmm).toBe("07:00"); // PDT
+    expect(localParts(new Date("2026-11-05T08:00:00Z")).dateKey).toBe("2026-11-05");
+    expect(localParts(new Date("2026-11-05T07:59:00Z")).dateKey).toBe("2026-11-04");
+  });
+
+  it("zonedTime round-trips across the DST change", () => {
+    expect(zonedTime(2026, 3, 8, 7, 0).toISOString()).toBe("2026-03-08T14:00:00.000Z"); // DST started at 2am
+    expect(zonedTime(2026, 3, 7, 7, 0).toISOString()).toBe("2026-03-07T15:00:00.000Z");
+    expect(zonedTime(2026, 11, 1, 7, 0).toISOString()).toBe("2026-11-01T15:00:00.000Z"); // day DST ends
+  });
+});
