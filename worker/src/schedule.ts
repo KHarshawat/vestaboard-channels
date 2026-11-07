@@ -2,8 +2,9 @@
  *
  * The cron fires every minute; `slotAt` says what that minute should post.
  * A slot with `at` posts once. A slot with `from`/`until` is a block: the
- * channel's pages are cycled one per minute for the whole block, so the
- * weather block shows every page several times over the half hour.
+ * channel is re-rendered every minute of the block and its pages cycled one
+ * per minute, so the weather block shows every page several times over the
+ * half hour and the muni block keeps its arrival times live.
  */
 
 export interface Slot {
@@ -20,7 +21,7 @@ export interface Slot {
 export const SCHEDULE: Slot[] = [
   { at: "07:00", channel: "letter" },
   { from: "07:15", until: "07:45", channel: "weather", page: "morning" },
-  { at: "08:00", channel: "muni" },
+  { from: "08:00", until: "08:15", channel: "muni" },
   { at: "08:15", channel: "holidays" },
   { at: "12:00", channel: "holidays" },
   { at: "16:30", channel: "dinner" },
@@ -54,5 +55,5 @@ export function slotAt(hhmm: string, schedule: Slot[] = SCHEDULE): Match | null 
 
 export function describe(slot: Slot): string {
   const what = slot.page ? `${slot.channel} (${slot.page})` : slot.channel;
-  return slot.at ? `${slot.at}        ${what}` : `${slot.from}-${slot.until}  ${what}, one page per minute`;
+  return slot.at ? `${slot.at}        ${what}` : `${slot.from}-${slot.until}  ${what}, refreshed every minute`;
 }

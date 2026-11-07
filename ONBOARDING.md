@@ -38,7 +38,7 @@ Built on branch `claude/code-onboarding-iksojp` (not yet merged/deployed):
    api.cloudflare.com + developers.cloudflare.com in the session network.
 
 Schedule now (Pacific, DST-correct): 7:00 letter; 7:15–7:45 weather pages
-cycling one per minute; 8:00 muni; 8:15 + 12:00 holidays; 4:30pm dinner;
+cycling one per minute; 8:00–8:15 muni refreshed every minute; 8:15 + 12:00 holidays; 4:30pm dinner;
 5:00pm moon; 8:30pm tomorrow; 8:33pm NWS alert if active.
 
 ## What was built on GitHub Actions (times are PST; +1h in PDT) — now manual fallback

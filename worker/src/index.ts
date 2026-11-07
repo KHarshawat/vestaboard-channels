@@ -52,7 +52,8 @@ export default {
     }
     const page = result.pages[offset % result.pages.length];
     await postCharacters(page.grid, env.VESTABOARD_TOKEN);
-    console.log(`${tag}: posted [${page.name}]` + (slot.from ? ` (${offset % result.pages.length + 1}/${result.pages.length} in cycle)` : ""));
+    const cycle = slot.from && result.pages.length > 1 ? ` (${offset % result.pages.length + 1}/${result.pages.length} in cycle)` : "";
+    console.log(`${tag}: posted [${page.name}]${cycle}`);
   },
 
   async fetch(request: Request, env: Env): Promise<Response> {

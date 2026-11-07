@@ -10,7 +10,8 @@ reference the TypeScript port is tested against.
 
 - `worker/src/schedule.ts` is the daily schedule in Pacific wall-clock time
   (DST-correct). A slot with `at` posts once; a block with `from`/`until`
-  cycles the channel's pages one per minute (the morning weather block).
+  re-renders the channel every minute, cycling its pages (the morning
+  weather block; muni refreshes its arrival times this way too).
 - `worker/src/channels/*.ts` build 6×22 grids. `menu.json` and the holiday
   calendar are bundled into the Worker at deploy time.
 - `.github/workflows/deploy_worker.yml` deploys on every push to `main` that

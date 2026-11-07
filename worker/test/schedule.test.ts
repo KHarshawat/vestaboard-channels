@@ -8,6 +8,12 @@ describe("schedule", () => {
     expect(slotAt("07:01")).toBeNull();
   });
 
+  it("refreshes muni every minute from 8:00 until holidays at 8:15", () => {
+    expect(slotAt("08:00")?.slot.channel).toBe("muni");
+    expect(slotAt("08:14")?.slot.channel).toBe("muni");
+    expect(slotAt("08:15")?.slot.channel).toBe("holidays");
+  });
+
   it("cycles weather pages one per minute from 7:15 until 7:45", () => {
     expect(slotAt("07:14")).toBeNull();
     expect(slotAt("07:15")).toEqual({ slot: SCHEDULE[1], offset: 0 });
@@ -25,7 +31,7 @@ describe("schedule", () => {
       expect(hits.length, hhmm).toBeLessThanOrEqual(1);
       if (hits.length) seen.set(hhmm, hits[0].channel);
     }
-    expect(seen.size).toBe(8 + 30); // 8 single posts + 30 weather minutes
+    expect(seen.size).toBe(7 + 30 + 15); // 7 single posts + 30 weather + 15 muni minutes
   });
 });
 
