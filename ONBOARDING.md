@@ -41,6 +41,23 @@ Schedule now (Pacific, DST-correct): 7:00 letter; 7:15–7:45 weather pages
 cycling one per minute; 8:00–8:15 muni refreshed every minute; 8:15 + 12:00 holidays; 4:30pm dinner;
 5:30pm moon; 8:00pm tomorrow; 8:03pm NWS alert if active.
 
+## Native Vestaboard+ channels (Kavi's app schedule, as of Nov 7)
+
+The app and the Worker don't know about each other; the board shows
+whatever posted last. Kavi re-timed the app channels around ours, so keep
+these in mind before moving any of our slots. Quiet hours: 11pm-midnight.
+
+6:45am Countdown Until Cancun | 10:00 Harry Potter Quotes | 11:00 Video
+Game Characters | 11:30 Film & TV Trivia | 12:30pm Art of the Day | 1:00
+Dad Jokes | 2:00 Name The Movie | 7:00pm Calendar Clock | 7:30 Word
+Riddles | 7:45 Wave Art. Family is in front of the board 6:30-8:25am,
+around lunch, and 5:30-8:30pm.
+
+Combined day: 6:45 Cancun, 7:00 letter, 7:15-7:45 weather cycle,
+8:00-8:15 muni live, 8:15 holidays, 10-11:30 app trivia, 12:00 holidays,
+12:30-2:00 app, 4:30 dinner, 5:30 moon, 7:00-7:45 app, 8:00 tomorrow's
+weather (+8:03 alert), then quiet.
+
 ## What was built on GitHub Actions (times are PST; +1h in PDT) — now manual fallback
 
 | Slot | Channel | Notes |
