@@ -26,8 +26,8 @@ export const SCHEDULE: Slot[] = [
   { at: "12:00", channel: "holidays" },
   { at: "16:30", channel: "dinner" },
   { at: "17:30", channel: "moon" },
-  { at: "20:30", channel: "weather", page: "tomorrow" },
-  { at: "20:33", channel: "weather", page: "alerts" },
+  { at: "20:00", channel: "weather", page: "tomorrow" },
+  { at: "20:03", channel: "weather", page: "alerts" },
 ];
 
 export const toMinutes = (hhmm: string): number => {
