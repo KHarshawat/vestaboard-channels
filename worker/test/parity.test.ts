@@ -103,3 +103,14 @@ describe("weather", () => {
     expect(result.skipped.map((s) => s.name)).toEqual(["rain", "heat", "alerts", "aqi"]);
   });
 });
+
+describe("letter shuffle", () => {
+  it("uses every letter exactly once per 26-day block, in a non-alphabetical order that differs per block", () => {
+    const orders = [100, 101, 102].map((b) => letter.blockOrder(b));
+    for (const o of orders) {
+      expect(new Set(o).size).toBe(26);
+      expect(o.join("")).not.toBe("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+    }
+    expect(orders[0].join("")).not.toBe(orders[1].join(""));
+  });
+});

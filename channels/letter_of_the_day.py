@@ -45,9 +45,42 @@ WORDS: dict[str, list[str]] = {
 }
 
 
+CYCLE = 26  # days per block; every letter appears once per block
+
+
+def _mulberry32(seed: int):
+    """Tiny seeded PRNG, implemented identically in worker/src/channels/letter.ts."""
+    state = seed & 0xFFFFFFFF
+
+    def rand() -> float:
+        nonlocal state
+        state = (state + 0x6D2B79F5) & 0xFFFFFFFF
+        t = state
+        t = ((t ^ (t >> 15)) * (t | 1)) & 0xFFFFFFFF
+        t ^= (t + (((t ^ (t >> 7)) * (t | 61)) & 0xFFFFFFFF)) & 0xFFFFFFFF
+        return ((t ^ (t >> 14)) & 0xFFFFFFFF) / 4294967296
+
+    return rand
+
+
+def block_order(block: int) -> list[str]:
+    """A shuffled A-Z for the given 26-day block (Fisher-Yates, seeded by block)."""
+    rand = _mulberry32(((block * 2654435761) & 0xFFFFFFFF) + 42)
+    letters = [chr(ord("A") + i) for i in range(26)]
+    for i in range(25, 0, -1):
+        j = int(rand() * (i + 1))
+        letters[i], letters[j] = letters[j], letters[i]
+    return letters
+
+
 def letter_for(day: datetime.date) -> str:
-    """Cycle A-Z deterministically by date."""
-    return chr(ord("A") + day.toordinal() % 26)
+    """Random-looking but deterministic: each 26-day block is a shuffled A-Z,
+    so no letter repeats within a block and the order differs every block."""
+    block, index = divmod(day.toordinal(), CYCLE)
+    order = block_order(block)
+    if index == 0 and block_order(block - 1)[-1] == order[0]:
+        order[0], order[1] = order[1], order[0]  # no same letter two days running
+    return order[index]
 
 
 def build_grid(day: datetime.date) -> list[list[int]]:
