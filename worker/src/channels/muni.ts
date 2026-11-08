@@ -41,10 +41,18 @@ export function timesText(mins: number[]): string {
   return mins.some((m) => m > 0) ? `${parts.join(", ")} MIN` : "DUE";
 }
 
+/** Muni Metro line colors, by LineRef; buses and unknown lines get white. */
+const LINE_COLORS: Record<string, string> = { J: "orange", K: "blue", L: "violet", M: "green", N: "blue", T: "red" };
+
+export function lineColor(line: string | null): string {
+  return LINE_COLORS[(line ?? "").split(" ")[0]] ?? "white";
+}
+
 export function buildGrid(east: Arrivals, west: Arrivals, now: Date): Grid {
   const line = east.line || west.line || "MUNI";
-  let header = `{white}{white} ${line} {white}{white}`;
-  if (line.length + 8 > 22) header = `{white} ${line} {white}`;
+  const c = `{${lineColor(line)}}`;
+  let header = `${c}${c} ${line} ${c}${c}`;
+  if (line.length + 8 > 22) header = `${c} ${line} ${c}`;
   const g = blankGrid();
   setRow(g, 0, header, "center");
   setRow(g, 2, `${padR("EAST", 5)}${padL(timesText(east.mins), 17)}`);

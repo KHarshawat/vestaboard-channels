@@ -75,15 +75,24 @@ def times_text(mins: list[int]) -> str:
     return f"{', '.join(parts)} MIN" if any(m > 0 for m in mins) else "DUE"
 
 
+# Muni Metro line colors, by LineRef; buses and unknown lines get white.
+LINE_COLORS = {"J": "orange", "K": "blue", "L": "violet", "M": "green", "N": "blue", "T": "red"}
+
+
+def line_color(line: str | None) -> str:
+    return LINE_COLORS.get((line or "").split(" ")[0], "white")
+
+
 def build_grid(
     east: tuple[str | None, list[int]],
     west: tuple[str | None, list[int]],
     now: datetime.datetime,
 ) -> list[list[int]]:
     line = east[0] or west[0] or "MUNI"
-    header = f"{{white}}{{white}} {line} {{white}}{{white}}"
+    c = "{%s}" % line_color(line)
+    header = f"{c}{c} {line} {c}{c}"
     if len(line) + 8 > 22:
-        header = f"{{white}} {line} {{white}}"
+        header = f"{c} {line} {c}"
     g = blank_grid()
     set_row(g, 0, header, align="center")
     set_row(g, 2, f"{'EAST':<5}{times_text(east[1]):>17}")
