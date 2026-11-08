@@ -38,7 +38,7 @@ Built on branch `claude/code-onboarding-iksojp` (not yet merged/deployed):
    api.cloudflare.com + developers.cloudflare.com in the session network.
 
 Schedule now (Pacific, DST-correct): 7:00 letter; 7:15–7:45 weather pages
-cycling one per minute; 8:00–8:15 muni refreshed every minute; 8:15 + 12:00 holidays; 4:30pm dinner;
+cycling every 5 min; 8:00–8:15 muni refreshed every minute; 8:15 + 12:00 holidays; 4:30pm dinner;
 5:30pm moon; 8:00pm tomorrow; 8:03pm NWS alert if active.
 
 ## Native Vestaboard+ channels (Kavi's app schedule, as of Nov 7)
@@ -53,7 +53,7 @@ Dad Jokes | 2:00 Name The Movie | 7:00pm Calendar Clock | 7:30 Word
 Riddles | 7:45 Wave Art. Family is in front of the board 6:30-8:25am,
 around lunch, and 5:30-8:30pm.
 
-Combined day: 6:45 Cancun, 7:00 letter, 7:15-7:45 weather cycle,
+Combined day: 6:45 Cancun, 7:00 letter, 7:15-7:45 weather cycle (5 min/page),
 8:00-8:15 muni live, 8:15 holidays, 10-11:30 app trivia, 12:00 holidays,
 12:30-2:00 app, 4:30 dinner, 5:30 moon, 7:00-7:45 app, 8:00 tomorrow's
 weather (+8:03 alert), then quiet.

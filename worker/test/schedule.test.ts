@@ -14,11 +14,13 @@ describe("schedule", () => {
     expect(slotAt("08:15")?.slot.channel).toBe("holidays");
   });
 
-  it("cycles weather pages one per minute from 7:15 until 7:45", () => {
+  it("cycles weather pages every 5 minutes from 7:15 until 7:45", () => {
     expect(slotAt("07:14")).toBeNull();
-    expect(slotAt("07:15")).toEqual({ slot: SCHEDULE[1], offset: 0 });
-    expect(slotAt("07:22")).toEqual({ slot: SCHEDULE[1], offset: 7 });
-    expect(slotAt("07:44")?.offset).toBe(29);
+    expect(slotAt("07:15")).toEqual({ slot: SCHEDULE[1], offset: 0, step: 0 });
+    expect(slotAt("07:16")).toBeNull(); // between posts
+    expect(slotAt("07:20")).toEqual({ slot: SCHEDULE[1], offset: 5, step: 1 });
+    expect(slotAt("07:40")?.step).toBe(5);
+    expect(slotAt("07:44")).toBeNull();
     expect(slotAt("07:45")).toBeNull();
   });
 
@@ -29,9 +31,9 @@ describe("schedule", () => {
       const hits = SCHEDULE.filter((s) =>
         s.at === hhmm || (s.from && s.until && hhmm >= s.from && hhmm < s.until));
       expect(hits.length, hhmm).toBeLessThanOrEqual(1);
-      if (hits.length) seen.set(hhmm, hits[0].channel);
+      if (slotAt(hhmm)) seen.set(hhmm, hits[0].channel);
     }
-    expect(seen.size).toBe(7 + 30 + 15); // 7 single posts + 30 weather + 15 muni minutes
+    expect(seen.size).toBe(7 + 6 + 15); // 7 single posts + 6 weather posts + 15 muni minutes
   });
 });
 

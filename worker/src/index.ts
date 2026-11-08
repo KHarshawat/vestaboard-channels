@@ -42,7 +42,7 @@ export default {
     const local = localParts(now);
     const match = slotAt(local.hhmm);
     if (!match) return;
-    const { slot, offset } = match;
+    const { slot, step } = match;
     const tag = `${local.dateKey} ${local.hhmm} ${slot.channel}${slot.page ? `/${slot.page}` : ""}`;
     const result = await render(slot.channel, { now, env, fetchJson }, { page: slot.page });
     for (const s of result.skipped) console.log(`${tag}: [${s.name}] skipped - ${s.reason}`);
@@ -50,9 +50,9 @@ export default {
       console.log(`${tag}: nothing to post`);
       return;
     }
-    const page = result.pages[offset % result.pages.length];
+    const page = result.pages[step % result.pages.length];
     await postCharacters(page.grid, env.VESTABOARD_TOKEN);
-    const cycle = slot.from && result.pages.length > 1 ? ` (${offset % result.pages.length + 1}/${result.pages.length} in cycle)` : "";
+    const cycle = slot.from && result.pages.length > 1 ? ` (${step % result.pages.length + 1}/${result.pages.length} in cycle)` : "";
     console.log(`${tag}: posted [${page.name}]${cycle}`);
   },
 
